@@ -40,3 +40,9 @@ public class Day02 : BaseSolver
         return sum.ToString();
     }
 }
+/*notes
+ * tady jsem si to chtel rozdelit do tupple ale nakonec se ukazalo ze je lepsi list protoze ho pak musim seradit v druhy casti
+ * Musel jsem si nechat poradit od gemini protoze me nenapadlo v druhy casti ze cisla ve stringu se neradi jako celek ale podle velikost v characteru
+ * takze 10 je mensi nez 2 protoze 1 ma mensi ascii nez 2
+ * taky jsem to chtel udelat elegantneji ne pres nejaky razeni pole treba jestli by nestacilo 1 nebo 2 Math.Min a z toho vydedukovat ktery vyradit na to jsem ale neprisel
+ */

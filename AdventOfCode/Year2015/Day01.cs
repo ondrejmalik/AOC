@@ -43,4 +43,8 @@ public class Day01 : BaseSolver
 
         return "0";
     }
+    /*notes
+     *prvni ukol byl jednoduchy nejvic casu zabralo vypinani inline pomoci a github copilota
+     *jediny co me napadlo je jak bych mel v c# resit iterace jestli spis pres foreach ale tam nemam indexy a nebo vzdycky pres for?
+     */
 }

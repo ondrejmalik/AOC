@@ -101,3 +101,14 @@ public class Day03 : BaseSolver
         return visitedLocations.Count().ToString();
     }
 }
+/*notes
+ *tady v prvni casti jsem nejdriv chtel udelat 2d pole boolu ale to pak neni nekonecny a pametove neefektivni
+ * nakonec jsem se rozhodl ukladat navstiveny pozice do listu<int,int> a kontrolovat jestli jsem tam uz byl
+ * v druhy casti jsem si nebyl jistej jestli ten if
+ *   if (!visitedLocations.Contains((xRobo, yRobo)))
+                {
+                    visitedLocations.Add((xRobo, yRobo));
+                }
+ * dat pro santu i robo santu zvlast nebo nejak nakonec pro oba stejny
+ * ale nevedel jsem jak elegantne udelat aby se ulozily ty spravny promeny jednou santa a pak robo
+ */
