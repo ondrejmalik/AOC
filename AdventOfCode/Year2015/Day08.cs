@@ -77,6 +77,50 @@ public class Day08 : BaseSolver
 
     public override string SolvePart2(string[] input)
     {
-        return "Not implemented yet";
+        int sumCode = 0;
+        int sumData = 0;
+        foreach (var inner in input)
+        {
+            // data > code 
+            int code = 2;
+            int data = inner.Length;
+
+            for (int i = 0; i < inner.Length;)
+            {
+                char c = inner[i];
+
+                switch (c)
+                {
+                    case '\\':
+                    {
+                        code += 2;
+                        i++;
+                        break;
+                    }
+                    case '"':
+                    {
+                        code += 2;
+                        i++;
+                        break;
+                    }
+
+                    default:
+                    {
+                        // OK
+                        code++;
+                        i++;
+                        break;
+                    }
+                }
+            }
+
+            sumCode += code;
+            sumData += data;
+
+            //Console.WriteLine($"{code} {data}");
+        }
+
+
+        return (sumCode - sumData).ToString();
     }
 }
