@@ -252,4 +252,6 @@ public class Day07 : BaseSolver
  pak jsem pridal dictionary - nejdriv jsem si myslel ze mam udelat operandy opcode -> vysledek ale vezkutecnosti to ma byt naopak protoze rekurzivni funkce hleda podle needed location a to je vysledek
  to ale nestacilo a bylo potreba pridat cachovani vysledku nejriv jsem to chtel dat do toho samyho dictionary ale pak jsem se rozhodl dat to zvlast jako <string,ushort>
  to se nakonec osvedcilo protoze ve druhy casti stacilo dat do cache vysledek z prvni casti do cache b
+ prej to jeste slo udelat pres topological sort ale to nevim jak
+ 
 */
