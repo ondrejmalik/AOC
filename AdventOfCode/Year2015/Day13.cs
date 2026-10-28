@@ -6,45 +6,6 @@ public class Day13 : BaseSolver
     public override int Day => 13;
 
 
-    public static class HeapsAlgorithm
-    {
-        public static IEnumerable<IList<T>> GetPermutations<T>(IList<T> list)
-        {
-            var array = new T[list.Count];
-            list.CopyTo(array, 0);
-
-            return Generate(array.Length, array);
-        }
-
-        private static IEnumerable<IList<T>> Generate<T>(int k, T[] array)
-        {
-            if (k == 1)
-            {
-                // Yield a clone so downstream consumers don't have their copy mutated
-                yield return (T[])array.Clone();
-                yield break;
-            }
-
-            foreach (var p in Generate(k - 1, array))
-                yield return p;
-
-            for (int i = 0; i < k - 1; i++)
-            {
-                if (k % 2 == 0)
-                    Swap(array, i, k - 1);
-                else
-                    Swap(array, 0, k - 1);
-
-                foreach (var p in Generate(k - 1, array))
-                    yield return p;
-            }
-        }
-
-        private static void Swap<T>(T[] array, int a, int b)
-        {
-            (array[a], array[b]) = (array[b], array[a]);
-        }
-    }
 
     (HashSet<string>, Dictionary<(string, string), int>) Parse(string[] input)
     {
@@ -128,7 +89,7 @@ public class Day13 : BaseSolver
 // kdy se hoste posouvaji vsichni o jedno misto dokola dokud se nedostanou na puvodni na zasedaci poradek to ale nema vliv
         var firstPerson = persons.First();
         var restOfPersons = persons.Skip(1).ToList();
-        var permutations = HeapsAlgorithm.GetPermutations(restOfPersons)
+        var permutations = Lib.HeapsAlgorithm.GetPermutations(restOfPersons)
             .Select(perm =>
             {
                 var fullTable = new List<string>(perm.Count + 1) { firstPerson };
@@ -160,7 +121,7 @@ public class Day13 : BaseSolver
 
         var firstPerson = persons.First();
         var restOfPersons = persons.Skip(1).ToList();
-        var permutations = HeapsAlgorithm.GetPermutations(restOfPersons)
+        var permutations = Lib.HeapsAlgorithm.GetPermutations(restOfPersons)
             .Select(perm =>
             {
                 var fullTable = new List<string>(perm.Count + 1) { firstPerson };
