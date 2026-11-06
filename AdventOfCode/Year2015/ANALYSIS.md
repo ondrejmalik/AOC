@@ -1,15 +1,15 @@
-# Advent of Code 2015: Code Quality & Architectural Review
+# Advent of Code 2015: Comprehensive Code Quality, Architecture & Retrospective
 
 ---
 
 ## 1. Executive Summary: The 5 Core Mental Traps of 2015
 
-Across all 25 days of Advent of Code 2015, your self-reflections show strong curiosity about low-level performance—thinking about CPU caches, heap vs. stack allocations, assembly branching, and recursion mechanics. However, you repeatedly fell into **five recurring architectural and psychological traps** that created subtle bugs, lost debugging time, and bloated code.
+Reviewing your solutions and Czech self-reflections across all 25 days shows strong low-level curiosity—you actively think about CPU cache, stack vs. heap allocations, assembly branching, and recursion. However, throughout 2015 you frequently fell into **five recurring traps** that caused subtle bugs, lost hours, and cluttered code.
 
 ```mermaid
 flowchart TD
-    A["Problem Description"] --> B{"The Traps"}
-    B -->|"Premature Fear of Allocations"| C["Trap 1: Allocation Paranoia<br/>(Manual index math, convoluted loops)"]
+    A["Problem Description"] --> B{"The 5 Traps"}
+    B -->|"Premature Fear of Allocations"| C["Trap 1: Allocation Paranoia<br/>(Brittle index math, convoluted loops)"]
     B -->|"Class vs Struct Confusion"| D["Trap 2: Value vs. Reference Mutations<br/>(Broken backtracking, shared refs)"]
     B -->|"Solving Inside Parsing"| E["Trap 3: Inline String Parsing<br/>(Substrings, magic indices in loops)"]
     B -->|"Part 1 to Part 2 Copy-Paste"| F["Trap 4: Code Duplication<br/>(Duplicate 100-line functions)"]
@@ -20,20 +20,19 @@ flowchart TD
 
 ### Trap 1: The "Allocation Paranoia" Paradox
 > [!WARNING]
-> **Optimizing before your algorithm is clear and correct almost always makes code *slower* and introduces bugs.**
-
+> **Optimizing before your algorithm is correct or clear almost always makes your code *slower* and introduces bugs.**
 * **What happened:**
-  * In **Day 06**, you rejected `string.Split` as *"neefektivní"* and spent an hour writing `FindWhiteSpaceIndexLeft` / `FindWhiteSpaceIndexRight` with hardcoded `index - 4` offsets, only to allocate four `Substring` instances per line anyway.
-  * In **Day 16**, you noted avoiding functional chaining to avoid allocations (*"abych musel dělat alokace"*), yet left dead code `sues.Where(...).ToString()` and wrapped `sues.FindIndex(...)` (which already returns an `int`) inside `Int32.Parse(...ToString())`.
-  * In **Day 24**, you focused on using `yield return` to practice lazy evaluation, but created a new `List<int>` (`[.. combination, ints[i]]`) at every step of a double-branching recursion tree, consuming 5 GB of RAM.
-* **The Rule:** In Advent of Code, **clarity always comes first**. Modern .NET garbage collectors easily process megabytes of short-lived strings in milliseconds. An asymptotically clean $O(N)$ solution with `string.Split` takes 1 ms, while a micro-optimized buggy algorithm takes hours to write and minutes to run.
+  * In **Day 06**, you avoided `string.Split` as *"neefektivní"*, spending an hour writing `FindWhiteSpaceIndexLeft` and `FindWhiteSpaceIndexRight` with hardcoded `index - 4` bounds—only to allocate 4 `Substring` instances per line anyway.
+  * In **Day 16**, you noted avoiding LINQ chaining to prevent allocations (*"abych nemusel dělat alokace"*), yet left a dead `sues.Where(...).ToString()` query and wrapped `sues.FindIndex(...)` (which already returns an `int`) inside `Int32.Parse(...ToString())`.
+  * In **Day 24**, you worried about `List<int>` vs `IEnumerable`, but your recursive branching exploded into an $O(3^N)$ tree consuming 5 GB of RAM.
+* **The Takeaway:** In Advent of Code, **clarity always comes first**. Modern .NET garbage collectors easily process a few megabytes of short-lived strings in milliseconds. An asymptotically clean $O(N)$ solution with `string.Split` takes 1 ms, while a micro-optimized buggy algorithm takes hours to write and 5 minutes to run.
 
 ---
 
 ### Trap 2: Value vs. Reference Semantics in Search & Backtracking
-* **What happened:**
-  * In **Day 22**, you switched `Spell` from a tuple to a class because `spells[i].Duration -= 1` wouldn't compile on a struct in `List<T>`. You then expected `[.. spells]` or `.ToList()` to deep-clone the spells (*"naivně jsem si myslel že když pak dám .ToList() na List<Spell> tak se z referenční třídy stane zázrakem value type"*). As a result, child branches corrupted parent timers!
-  * In **Day 21**, you manually copied every property between `Player` and `Boss` because you didn't know how to clone objects cleanly without mutation side effects.
+* **What happened:** 
+  * In **Day 22**, you switched `Spell` from a tuple to a class because `spells[i].Duration -= 1` wouldn't compile on a struct in `List<T>`. You then expected `[.. spells]` or `.ToList()` to deep-clone the spells (*"naivně jsem si myslel že když dám .ToList() tak se z referenční třídy stane value type"*), which meant child branches corrupted parent timers!
+  * In **Day 21**, you manually copied every property between `Player` and `Boss` because you didn't know how to clone objects cleanly.
 * **The Modern Solution:** Use **`readonly record struct`** or **records with `with` expressions**. A value-type state is copied automatically on the CPU stack when passed to a function:
   ```csharp
   // Zero heap allocation, zero risk of child mutations leaking to parents
@@ -48,7 +47,7 @@ flowchart TD
 ### Trap 3: Parsing Inline Instead of Creating a Domain Model
 * **What happened:** In **Day 06**, **Day 14**, **Day 15**, and **Day 21**, you parsed string numbers using magic indices like `line.Split(' ')[3]` or manual substring indices directly inside the simulation logic.
 * **The Rule:** **Split every problem into two distinct stages**:
-  1. `Parse(string[] input)` $\to$ returns a list of strongly-typed records or structs.
+  1. `Parse(string[] input)` $\to$ returns a collection of strongly-typed records or structs.
   2. `Solve(items)` $\to$ runs pure domain logic with clean property names (`reindeer.Speed`, `gate.Left`).
 
 ---
@@ -73,16 +72,17 @@ flowchart TD
 
 ## 2. Day-by-Day Analysis & Critique
 
-Below is the detailed breakdown of each day's solution, your thought process notes, the bugs/hazards present, and how modern C# clarifies the implementation.
+Below is the breakdown of each day's solution, your thought process notes, the bugs/hazards present, and how modern C# clarifies the implementation.
 
 ---
 
 ### Day 01: Not Quite Lisp
 * **Your Thought Process:** You noted: *"jediný co mě napadlo je jak bych měl v c# řešit iterace jestli spíš přes foreach ale tam nemám indexy a nebo vždycky přes for?"*
-* **Analysis & Latent Bug:** In Part 2, you wrote `return (i + j + 1).ToString();`. If `input` had multiple lines, this formula produces an incorrect global index because `i` is a line count and `j` is a character offset. It only passed because Day 1's input is a single string.
+* **Analysis & Hidden Bug:** In Part 2, you wrote `return (i + j + 1).ToString();`. If `input` had multiple lines, this formula produces the wrong global index because `i` is a line count and `j` is a character offset! It only passed because Day 1's input is a single string.
 * **Modern C# Idiom:**
-  Use `.Index()` (introduced in modern C#) or standard LINQ:
+  Use `.Index()` (C# 13+) or standard LINQ:
   ```csharp
+  // Clear, expressive foreach with index:
   foreach (var (index, ch) in input[0].Index())
   {
       floor += ch == '(' ? 1 : -1;
@@ -95,7 +95,7 @@ Below is the detailed breakdown of each day's solution, your thought process not
 ### Day 02: I Was Told There Would Be No Math
 * **Your Thought Process:** You noted: *"v druhý části čísla ve stringu se neřadí jako celek ale podle velikosti characteru... chtěl jsem to udělat elegantněji ne přes nějaký řazení pole"*.
 * **Analysis:** Sorting an array of 3 numbers is completely fine, but `xyz.Sort()` on an array requires `Array.Sort(xyz)`. In Part 1, you computed `Math.Min(Math.Min(l*w, l*h), w*h)`.
-* **Modern C# Idiom:**
+* **Modern C# Idiom:** List pattern matching with slicing and sorting:
   ```csharp
   int[] dims = [.. dimensions.Split('x').Select(int.Parse)];
   Array.Sort(dims);
@@ -135,11 +135,12 @@ Below is the detailed breakdown of each day's solution, your thought process not
 
 ### Day 04: The Ideal Stocking Stuffer (MD5)
 * **Your Thought Process:** You noted: *"nevěděl jsem jak convertovat string na ascii a hex... bál jsem se alokací tak jsem použil StringBuilder... druhá část stačilo přidat jeden && pro b[5]"*.
-* **Analysis:** Writing `b[0] == '0' && b[1] == '0' && b[2] == '0' && b[3] == '0' && b[4] == '0'` is fragile. `Convert.ToHexString(hash).StartsWith("00000")` is much clearer.
-* **Modern C# Idiom:**
+* **Analysis:** Writing `b[0] == '0' && b[1] == '0' && b[2] == '0' && b[3] == '0' && b[4] == '0'` is fragile. `Convert.ToHexString(hash).StartsWith("00000")` is infinitely more readable.
+* **Modern C# Idiom:** In modern C#, pattern matching on spans makes this both clean and zero-allocation:
   ```csharp
+  // Clean prefix check:
   if (hex.StartsWith("00000")) return i.ToString();
-  // Or with list pattern matching:
+  // Or list pattern:
   if (hex is ['0', '0', '0', '0', '0', ..]) return i.ToString();
   ```
 
@@ -147,7 +148,7 @@ Below is the detailed breakdown of each day's solution, your thought process not
 
 ### Day 05: Doesn't He Have Intern-Elves For This?
 * **Your Thought Process:** You noted: *"nejvíc času zabralo rozdělení do funkcí... druhou část jsem chtěl nejdřív řešit přes HashSet, pak Dictionary... nakonec jsem to udělal iterativně"*.
-* **Analysis:** `ContainsPairNonOverlapping` had nested `for` loops with manual coordinate checking.
+* **Analysis:** `ContainsPairNonOverlapping` had nested `for` loops with `otherN == charN && otherN1 == charN1`.
 * **Modern C# Idiom:**
   ```csharp
   // Rule 1: A pair of two letters appearing at least twice without overlapping
@@ -164,17 +165,17 @@ Below is the detailed breakdown of each day's solution, your thought process not
 ### Day 06: Probably a Fire Hazard
 * **Your Thought Process:** You noted: *"problém byl hlavně v parsování... přes substring bez turn on/off mi přišlo neefektivní... hledal jsem začátek a konec čísla přes IndexOf což zabralo hodně času... druhá část stačilo přepsat bool na int"*.
 * **Analysis & Latent Bug:**
-  In block 4, you wrote: `FindWhiteSpaceIndexRight(line, num2)` instead of `num2 + 1`. This only worked because the coordinate had at most 3 digits. If a coordinate had 4 digits, `FindWhiteSpaceIndexRight` would return `-1` and throw `ArgumentOutOfRangeException`.
+  In block 4, you wrote: `FindWhiteSpaceIndexRight(line, num2)` instead of `num2 + 1`. This only worked because the coordinate had at most 3 digits. If a coordinate was 4 digits, `FindWhiteSpaceIndexRight` would return `-1` and throw `ArgumentOutOfRangeException`.
 * **Answering Your Questions:**
   1. *How to parse faster?* Splitting on space/comma or Regex:
      ```csharp
      var m = Regex.Match(line, @"(turn on|turn off|toggle) (\d+),(\d+) through (\d+),(\d+)");
      ```
-  2. *Can you do it without a 2D array?* Yes, with **2D Coordinate Compression / Interval Trees**, but for a $1000 \times 1000$ grid, a flat 1D array `int[1_000_000]` fits in 4 MB of RAM and runs in ~30 ms with CPU cache locality.
+  2. *Can you do it without a 2D array?* Yes, with **2D Coordinate Compression / Interval Trees**, but for a $1000 \times 1000$ grid, a flat 1D array `int[1_000_000]` fits in 4 MB of RAM and runs in ~30 ms.
 
 ---
 
-### Day 07: Some Assembly Required
+### Day 07: Some Assembly Required -- TODO: musim si to jeste osvezit jenom jsem to zkopiroval ale moc tomu nerozumim pouziva to features z net11 jako union
 * **Your Thought Process:** You noted: *"nejdřív jsem si myslel že to je jako assembly a mám to pouštět instrukci po instrukci... pak rekurzivně... pak cachování... v druhé části stačilo dát do cache výsledek z první části... prý to šlo udělat přes topological sort"*.
 * **Analysis:**
   1. **Duplicated Cache Lookups:** You checked `if (!cache.TryGetValue(op1, out op1Val))` inside every single `switch` case (8 times!). Cache checks belong at the **entry** of the function, not scattered inside each branch.
@@ -193,7 +194,7 @@ Below is the detailed breakdown of each day's solution, your thought process not
 
 ### Day 08: Matchsticks (String Escaping)
 * **Analysis:** You parsed `\"`, `\\`, and `\x..` with nested switches.
-* **Modern C# Idiom:**
+* **Modern C# Idiom:** Using Regex or Span pattern matching:
   ```csharp
   // Part 1 data length: unescape quotes and hex
   int codeLen = line.Length;
@@ -205,12 +206,12 @@ Below is the detailed breakdown of each day's solution, your thought process not
 
 ---
 
-### Day 09: All in a Single Night (TSP)
+### Day 09: All in a Single Night (TSP) -- TODO: zatim nerozimim kodu jak u permutaci tak i u HeldKarp
 * **Your Thought Process:** You noted: *"dělal jsem to přes 3 hodiny... přemýšlel jestli class graf s List<node> a List<edge>... problém dělaly reference... ukládal výsledek do public proměnný MinLength"*.
 * **Analysis:**
-  1. Mutating `Graph.MinLength` as a side effect during recursive traversal makes the class stateful and breaks parallelism or multiple runs.
+  1. Mutating `Graph.MinLength` as a side effect during recursive traversal makes the class stateful and impossible to run in parallel.
   2. `Nodes` was a `HashSet<Node>`, but you called `Nodes.FirstOrDefault(n => n.Name == name)`. If `Nodes` were `Dictionary<string, Node>`, `GetOrCreate` is a direct lookup.
-  3. Since $N = 8$ cities, this is pure Traveling Salesperson: permutations of the 8 cities.
+  3. Since $N = 8$ cities, this is just permutations! You already had `Lib.HeapsAlgorithm.GetPermutations` in your library.
 * **Modern C# Idiom:**
   ```csharp
   var cities = edges.Keys.SelectMany(k => new[] { k.From, k.To }).Distinct().ToList();
@@ -269,7 +270,7 @@ Below is the detailed breakdown of each day's solution, your thought process not
 
 ### Day 12: JSAbacusFramework.io
 * **Analysis:**
-  1. `Select(JsonElement)` and `Select(JsonProperty)` were duplicate code because `JsonProperty.Value` is just a `JsonElement`.
+  1. `Select(JsonElement)` and `Select(JsonProperty)` were 100% duplicate code because `JsonProperty.Value` is just a `JsonElement`!
   2. `IteratePart2` duplicated Part 1's `Iterate`.
 * **Clean Unified Traversal:**
   ```csharp
@@ -339,7 +340,7 @@ Below is the detailed breakdown of each day's solution, your thought process not
   1. `var suesRes = sues.Where(...).ToString();` is dead code.
   2. `Int32.Parse(sues.FindIndex(...).ToString())` does a round-trip through string for no reason.
   3. In Part 2, you wrote `sue.Trees >= ourSue.Trees`. The prompt says **greater than** (`>`). It only passed because your input had no Sue with `Trees == 3`.
-* **Clarity Refactor:**
+* **Clarity Refactor:** Model Sue as a dictionary or record with nullable properties:
   ```csharp
   record Sue(int Number, Dictionary<string, int> Props);
 
@@ -362,8 +363,8 @@ Below is the detailed breakdown of each day's solution, your thought process not
   var a = GenerateRecursive(containerSizes.ToArray()).ToList().MinBy(x => x.Count).Count;
   ```
   > [!IMPORTANT]
-  > **This is a logic bug!** Part 2 asks: *"How many different combinations can bring you to that minimum?"*
-  > Calling `.MinBy(x => x.Count).Count` returns the **size of the minimum combination** (e.g. `4`), NOT the count of combinations that have that size! You only passed because the count of combinations happened to equal the size in your input.
+  > **This is a bug!** Part 2 asks: *"How many different combinations can bring you to that minimum?"*
+  > Calling `.MinBy(x => x.Count).Count` returns the **size of the minimum combination** (e.g. `4`), NOT the number of combinations that have that size! You only passed because the count of combinations happened to match or your input had an odd coincidence.
 * **The Correct & Clean Solution:**
   ```csharp
   var valid = Combinations(containers, 150).ToList();
@@ -411,7 +412,7 @@ Below is the detailed breakdown of each day's solution, your thought process not
 ### Day 20: Infinite Elves and Infinite Houses
 * **Your Thought Process:** You noted: *"binary search nefungoval na 100% ale přiblížil mě k tomu... zmenšoval jsem rozsah a udělal Parallel.For"*.
 * **Analysis:**
-  1. Binary search failed because the divisor-sum function $\sigma(n)$ is **not monotonic** (it fluctuates up and down).
+  1. Binary search failed because the divisor-sum function $\sigma(n)$ is **not monotonic** (it goes up and down chaotically).
   2. `SolvePart1` returned `"0"` because the code was commented out.
 * **The Sieve of Eratosthenes (Harmonic Series):**
   Instead of asking *"which elves visit house H?"* (factorization), invert the question: *"which houses does elf E visit?"*:
@@ -461,7 +462,7 @@ Below is the detailed breakdown of each day's solution, your thought process not
   ```csharp
   if (instruction.Register == 'a') a /= 2; else b /= 2;
   ```
-  was repeated across every opcode.
+  repeated across every opcode.
 * **Clean Register Array:**
   ```csharp
   int[] regs = [a, b];

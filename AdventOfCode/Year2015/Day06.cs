@@ -89,7 +89,7 @@ public class Day06 : BaseSolver
 
             {
                 int substringStart = num2 + 1;
-                int substringLenght = FindWhiteSpaceIndexRight(line, num2) - substringStart + 1;
+                int substringLenght = FindWhiteSpaceIndexRight(line, num2 + 1) - substringStart + 1;
                 end.y = Int32.Parse(line.Substring(substringStart, substringLenght));
             }
             if (line.StartsWith("turn on"))

@@ -19,18 +19,17 @@ public class Day12 : BaseSolver
         return total;
     }
 
-    int Iterate(JsonElement.ObjectEnumerator obj)
+    int Iterate(JsonElement.ObjectEnumerator array)
     {
         int total = 0;
-
-        foreach (var element in obj)
+        foreach (var element in array)
         {
-            total += Select(element);
+            //tady jsem si dovolil pridat fix od ai a odstranit Select na jsonProperty stacilo totiz zavolat .Value a ziskam z toho JsonElement na ktery uz mam funkci
+            total += Select(element.Value);
         }
 
         return total;
     }
-
 
     int Select(JsonElement current)
     {
@@ -48,7 +47,7 @@ public class Day12 : BaseSolver
             case JsonValueKind.String:
                 string str = current.GetString()!;
                 int num = 0;
-                _ = Int32.TryParse(str, out num);
+                _ = int.TryParse(str, out num);
                 total += num;
 
                 break;
@@ -60,33 +59,6 @@ public class Day12 : BaseSolver
         return total;
     }
 
-    int Select(JsonProperty current)
-    {
-        int total = 0;
-
-        switch (current.Value.ValueKind)
-        {
-            case JsonValueKind.Array:
-                JsonElement.ArrayEnumerator array = current.Value.EnumerateArray();
-                total += Iterate(array);
-                break;
-            case JsonValueKind.Object:
-                JsonElement.ObjectEnumerator obj = current.Value.EnumerateObject();
-                total += Iterate(obj);
-                break;
-            case JsonValueKind.String:
-                string str = current.Value.GetString()!;
-                int num = 0;
-                _ = Int32.TryParse(str, out num);
-                total += num;
-                break;
-            case JsonValueKind.Number:
-                total += current.Value.GetInt32();
-                break;
-        }
-
-        return total;
-    }
 
     public override string SolvePart1(string[] input)
     {

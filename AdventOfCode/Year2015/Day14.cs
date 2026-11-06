@@ -62,7 +62,7 @@ public class Day14 : BaseSolver
 
     public override string SolvePart1(string[] input)
     {
-        return SimRace(Parse(input), 1000)
+        return SimRace(Parse(input), 2503)
             .MaxBy(reindeer => reindeer.DistanceTraveled)?.DistanceTraveled.ToString() ?? "";
         ;
     }
