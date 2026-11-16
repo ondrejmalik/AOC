@@ -1,0 +1,27 @@
+name: Verify Puzzles Against Ground Truth
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 11
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '11.0.x'
+
+      - name: Build AdventOfCode
+        run: |
+          dotnet restore AdventOfCode/AdventOfCode.csproj -p:TargetFramework=net11.0
+          dotnet build AdventOfCode/AdventOfCode.csproj -c Release --no-restore -p:TargetFramework=net11.0
+
+      - name: Verify completed puzzles against ground truth
+        run: dotnet run --project .github/verifier/GroundTruthVerifier.csproj -c Release -- ground-truth.json AdventOfCode/bin/Release/net11.0/AdventOfCode.dll
